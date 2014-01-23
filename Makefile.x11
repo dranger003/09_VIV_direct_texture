@@ -1,0 +1,54 @@
+APPNAME			= 09_VIV_direct_texture
+DESTDIR			= .
+
+
+# Make command to use for dependencies
+CC = $(CROSS_COMPILE)gcc
+AR = $(CROSS_COMPILE)ar
+
+TARGET_PATH_LIB = $(ROOTFS)/usr/lib
+TARGET_PATH_INCLUDE = $(ROOTFS)/usr/include
+COMMON_DIR=../common
+
+BIN_TUT = $(DESTDIR)/$(APPNAME)
+
+CFLAGS = -DDEBUG -D_DEBUG -D_GNU_SOURCE -mfloat-abi=softfp -mfpu=neon -fPIC -O3 -fno-strict-aliasing -fno-optimize-sibling-calls -Wall -g
+
+CFLAGS_TUT = $(CFLAGS) $(CFLAGS_EGL)
+
+CFLAGS_TUT += \
+    	-DLINUX \
+	-DEGL_USE_X11
+
+CFLAGS_TUT += \
+	-I$(TARGET_PATH_INCLUDE) \
+	-I$(COMMON_DIR)/inc \
+	
+
+OBJECTS_TUT += \
+	main.o \
+	$(COMMON_DIR)/src/fsl_egl.o
+ASSETS	= *.vert *.frag *.yuv
+
+DEPS_TUT = -lstdc++ -lm -lGLESv2 -lEGL -lX11 -ldl -Wl,--library-path=$(TARGET_PATH_LIB),-rpath-link=$(TARGET_PATH_LIB)
+
+$(BIN_TUT) : $(OBJECTS_TUT)
+	@echo " LD " $@
+	$(QUIET)$(CC) -o $(BIN_TUT) $(OBJECTS_TUT) $(DEPS_TUT)
+
+%.o : %.c
+	@echo " CC " $@
+	$(QUIET)$(CC) $(CFLAGS_TUT) -MMD -c $< -o $@
+
+%.o : %.cpp
+	@echo " CXX " $@
+	$(QUIET)$(CC) $(CFLAGS_TUT) -MMD -c $< -o $@
+
+clean:
+	rm -f $(OBJECTS_TUT) $(OBJECTS_TUT:.o=.d) $(BIN_TUT)
+	
+install:
+	cp -f $(APPNAME) $(ASSETS) $(DESTDIR)/.
+	
+	
+-include $(OBJECTS_TUT:.o=.d)
